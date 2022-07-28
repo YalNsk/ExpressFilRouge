@@ -3,7 +3,28 @@ const Task = require("../models/task-model");
 const taskController = {
     //Tous les getter
     getAll : async (req, res) => {
-        const tasks = await Task.find()
+        // Pour récupérer le offset et le limit passés dans la requête : 
+        const offset = req.query.offset ? req.query.offset : 0;
+        const limit = req.query.limit ? req.query.limit : 10;
+
+        // Pour la possible query avec le status : 
+        let statusFilter;
+        const status = req.query.status;
+        if(status){
+            // Si notre statut est un tableau (contient plusieurs status à évaluer)
+            if(Array.isArray(status)){
+            // Puisqu'on a un tableau on va regarder si le status de chaque requête a une valeur compris dans le tableau fourni
+                statusFilter = { status : {$in : status}}
+            }
+            else {
+                statusFilter = { status : status }
+            }
+        }
+        else{
+            statusFilter = {}
+        }
+        
+        const tasks = await Task.find(statusFilter)
             .populate({           
                 path : 'categoryId',
                 select : { name : 1, icon : 1 }
@@ -15,9 +36,15 @@ const taskController = {
             .populate({
                 path : 'receiverUserId',
                 select : {firstname : 1, lastname : 1, pseudo : 1}
-            });
-        res.status(200).json(tasks);
+            })
+            .limit(limit)
+            .skip(offset);
+
+        const count = await Task.countDocuments();
+        const data = {'tasks' : tasks, 'count' : count };
+        res.status(200).json(data);
     },
+    // En fonction de l'Id de la tâche
     getById : async (req, res) => {
         const id = req.params.id
         const task = await Task.findById(id)
@@ -42,12 +69,33 @@ const taskController = {
             res.status(200).json(task);
     },
 
+    
+
 
     getByCategory : async (req, res) => {
+
+        let statusFilter;
+        const status = req.query.status;
+        if(status){
+            // Si notre statut est un tableau (contient plusieurs status à évaluer)
+            if(Array.isArray(status)){
+            // Puisqu'on a un tableau on va regarder si le status de chaque requête a une valeur compris dans le tableau fourni
+                statusFilter = { status : {$in : status}}
+            }
+            else {
+                statusFilter = { status : status }
+            }
+        }
+        else{
+            statusFilter = {}
+        }
+
+        const offset = req.query.offset ? req.query.offset : 0;
+        const limit = req.query.limit ? req.query.limit : 10;
 // On veut les tâches dont le champ categoryId est égal à l'id passé en paramètre
         const idCat = req.params.id;
         const categoryFilter = { categoryId : idCat };
-        const tasks = await Task.find(categoryFilter)
+        const tasks = await Task.find({$and : [categoryFilter, statusFilter]})
             .populate({           
                 path : 'categoryId',
                 select : { name : 1, icon : 1 }
@@ -59,13 +107,22 @@ const taskController = {
             .populate({
                 path : 'receiverUserId',
                 select : {firstname : 1, lastname : 1, pseudo : 1}
-            });
-        res.status(200).json(tasks);
+            })
+            .limit(limit)
+            .skip(offset);
+
+        const count = await Task.countDocuments(categoryFilter);
+        const data = {'tasks' : tasks, 'count' : count };
+        res.status(200).json(data);
     },
     getByUser : async (req, res) => {
+
+        const offset = req.query.offset ? req.query.offset : 0;
+        const limit = req.query.limit ? req.query.limit : 10;
+
         const idReceiver = req.params.id;
         const receiverFilter = { receiverUserId : idReceiver };
-        const tasks = await Task.find(receiverFilter)
+        const tasks = await Task.find({$and : [receiverFilter, statusFilter]})
             .populate({           
                 path : 'categoryId',
                 select : { name : 1, icon : 1 }
@@ -77,8 +134,13 @@ const taskController = {
             .populate({
                 path : 'receiverUserId',
                 select : {firstname : 1, lastname : 1, pseudo : 1}
-            });
-        res.status(200).json(tasks);
+            })
+            .limit(limit)
+            .skip(offset);
+
+        const count = await Task.countDocuments();
+        const data = {'tasks' : tasks, 'count' : count };
+        res.status(200).json(data);
 
     }, 
     //Creation

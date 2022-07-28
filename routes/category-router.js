@@ -38,13 +38,13 @@ const categoryValidator = require('../validators/category-validator');
 // categoryRouter.use(idValidator());
 
 categoryRouter.route('/')
-    .get(categoryController.getAll) //Récupération de toutes les catégories
-    .post(authentication(["User", "Moderator", "Admin"]),bodyValidation(categoryValidator), categoryController.create) //Ajout d'une nouvelle catégorie
+    .get(authentication(), categoryController.getAll) //Récupération de toutes les catégories
+    .post(authentication(["Moderator", "Admin"]),bodyValidation(categoryValidator), categoryController.create) //Ajout d'une nouvelle catégorie
     
 //On rajoute notre middleware de validation de format de l'Id pour chaque route où on a besoin
 //de valider l'id
 categoryRouter.route('/:id')
-    .get(idValidator(), categoryController.getById) //Récupération d'une catégorie en particulier
+    .get(authentication(), idValidator(), categoryController.getById) //Récupération d'une catégorie en particulier
     .put(authentication(["Admin", "Moderator"]), idValidator(), bodyValidation(categoryValidator), categoryController.update) //Modification d'une catégorie
     .delete(authentication(["Admin"]), idValidator(), categoryController.delete); //Suppresion d'une catégorie
 
